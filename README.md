@@ -3,9 +3,9 @@
 </p>
 
 <p align="center">
-<img src="https://www.google.com/search?q=https://img.shields.io/badge/build-passing-green.svg" alt="Build Status">
-<img src="https://www.google.com/search?q=https://img.shields.io/badge/version-1.0.0--mvp-blue.svg" alt="Version">
-<img src="https://www.google.com/search?q=https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
+<img src="https://img.shields.io/badge/build-passing-green.svg" alt="Build Status">
+<img src="https://img.shields.io/badge/version-1.0.0--mvp-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
 </p>
 
 <p align="center">
