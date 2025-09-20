@@ -43,7 +43,7 @@ ClientDeck is built with a modern and industry-tested tech stack to ensure scala
 </p>
 
 Backend (API)
-Laravel 11: The PHP framework for building robust and elegant REST APIs.
+Laravel 12: The PHP framework for building robust and elegant REST APIs.
 
 Laravel Sanctum: Lightweight token-based API authentication.
 
@@ -66,7 +66,7 @@ React Hook Form: A performant and flexible forms library.
 To get a local copy up and running, make sure you meet the prerequisites and follow the installation steps below.
 
 Prerequisites
-Node.js (v18+) & NPM / Yarn
+Node.js (v20+) & NPM / Yarn
 
 PHP (v8.2+) & Composer
 
