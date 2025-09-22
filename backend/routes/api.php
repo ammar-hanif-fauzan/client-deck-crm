@@ -18,6 +18,7 @@ Route::get('/test', function () {
     return response()->json(['message' => 'API is working!']);
 });
 
+
 // Protected routes
 Route::middleware(['auth:sanctum'])->group(function () {
     // Auth routes
