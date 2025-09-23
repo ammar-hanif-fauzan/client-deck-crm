@@ -40,3 +40,4 @@ class Contact extends Model
         return $this->hasMany(Project::class);
     }
 }
+

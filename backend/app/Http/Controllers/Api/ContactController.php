@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ContactResource;
 use App\Models\Contact;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Hash;
 
 class ContactController extends Controller
 {
@@ -15,23 +17,23 @@ class ContactController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $contacts = Contact::with(['user', 'projects'])
-            ->where('user_id', $request->user()->id)
-            ->when($request->search, function ($query, $search) {
+        $query = Contact::with(['user', 'projects']);
+        
+        // Jika parameter 'all' tidak ada, filter berdasarkan user_id
+        if (!$request->has('all')) {
+            $query->where('user_id', $request->user()->id);
+        }
+        
+        $contacts = $query->when($request->search, function ($query, $search) {
                 return $query->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('company', 'like', "%{$search}%");
             })
-            ->paginate(15);
+            ->get();
 
         return response()->json([
             'data' => ContactResource::collection($contacts),
-            'pagination' => [
-                'current_page' => $contacts->currentPage(),
-                'last_page' => $contacts->lastPage(),
-                'per_page' => $contacts->perPage(),
-                'total' => $contacts->total(),
-            ],
+            'total' => $contacts->count(),
         ]);
     }
 
@@ -41,14 +43,31 @@ class ContactController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
+            'name' => 'nullable|string|max:255',
+            'email' => 'required|email|max:255',
             'phone_number' => 'nullable|string|max:20',
             'company' => 'nullable|string|max:255',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
+        $userId = $request->user()->id; // Default to current user
+
+        // Jika user_id diisi, gunakan user yang sudah ada
+        if ($request->filled('user_id')) {
+            $userId = $request->user_id;
+        }
+        // Jika name diisi tapi user_id tidak diisi, create user baru
+        elseif ($request->filled('name')) {
+            $newUser = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make('password'), // Default password
+            ]);
+            $userId = $newUser->id;
+        }
+
         $contact = Contact::create([
-            'user_id' => $request->user()->id,
+            'user_id' => $userId,
             'name' => $request->name,
             'email' => $request->email,
             'phone_number' => $request->phone_number,
@@ -89,17 +108,35 @@ class ContactController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'phone_number' => 'nullable|string|max:20',
             'company' => 'nullable|string|max:255',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
+        $userId = $contact->user_id; // Keep current user_id by default
+
+        // Jika user_id diisi, gunakan user yang sudah ada
+        if ($request->filled('user_id')) {
+            $userId = $request->user_id;
+        }
+        // Jika name diisi tapi user_id tidak diisi, create user baru
+        elseif ($request->filled('name') && !$request->filled('user_id')) {
+            $newUser = User::create([
+                'name' => $request->name,
+                'email' => $request->email ?? $contact->email,
+                'password' => Hash::make('password'), // Default password
+            ]);
+            $userId = $newUser->id;
+        }
+
         $contact->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone_number' => $request->phone_number,
-            'company' => $request->company,
+            'user_id' => $userId,
+            'name' => $request->name ?? $contact->name,
+            'email' => $request->email ?? $contact->email,
+            'phone_number' => $request->phone_number ?? $contact->phone_number,
+            'company' => $request->company ?? $contact->company,
         ]);
 
         return response()->json([
@@ -125,3 +162,4 @@ class ContactController extends Controller
         ]);
     }
 }
+
