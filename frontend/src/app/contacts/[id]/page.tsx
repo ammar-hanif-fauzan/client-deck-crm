@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { ArrowLeft, Edit, Mail, Phone, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,10 +21,53 @@ export default function ContactDetailPage() {
   useEffect(() => {
     const fetchContact = async () => {
       try {
-        const response = await contactsAPI.getById(Number(params.id));
-        setContact(response.data);
+        console.log('Fetching contact with ID:', params.id);
+        
+        // First try the normal API call
+        let response;
+        try {
+          response = await contactsAPI.getById(Number(params.id));
+          console.log('Contact API Response:', response.data);
+        } catch (apiError) {
+          console.log('Normal API call failed, trying alternative approach...');
+          
+          // Fallback: try to get contact from the list API and filter by ID
+          try {
+            const listResponse = await contactsAPI.getAll({});
+            console.log('List API response for fallback:', listResponse.data);
+            
+            if (listResponse.data && listResponse.data.data && Array.isArray(listResponse.data.data)) {
+              const foundContact = listResponse.data.data.find((contact: any) => contact.id === Number(params.id));
+              if (foundContact) {
+                console.log('Found contact in list:', foundContact);
+                setContact(foundContact);
+                return;
+              }
+            }
+          } catch (listError) {
+            console.error('List API fallback also failed:', listError);
+          }
+          
+          throw apiError; // Re-throw original error if fallback fails
+        }
+        
+        // Handle different response structures from Laravel
+        let contactData = null;
+        if (response.data) {
+          if (response.data.data) {
+            contactData = response.data.data;
+          } else {
+            contactData = response.data;
+          }
+        }
+        
+        setContact(contactData);
       } catch (error) {
         console.error('Failed to fetch contact:', error);
+        // Don't show error toast for 403, just log it
+        if ((error as any)?.response?.status !== 403) {
+          toast.error('Failed to load contact details');
+        }
       } finally {
         setIsLoading(false);
       }

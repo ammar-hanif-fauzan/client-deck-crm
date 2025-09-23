@@ -12,7 +12,7 @@ import { projectsAPI } from '@/lib/api';
 import { Project } from '@/lib/store';
 
 const statusLabels = {
-  1: 'Planning',
+  1: 'To Do',
   2: 'In Progress',
   3: 'Completed',
 };
@@ -32,8 +32,47 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        const response = await projectsAPI.getById(Number(params.id));
-        setProject(response.data);
+        console.log('Fetching project with ID:', params.id);
+        
+        // First try the normal API call
+        let response;
+        try {
+          response = await projectsAPI.getById(Number(params.id));
+          console.log('Project API Response:', response.data);
+        } catch (apiError) {
+          console.log('Normal API call failed, trying alternative approach...');
+          
+          // Fallback: try to get project from the list API and filter by ID
+          try {
+            const listResponse = await projectsAPI.getAll({});
+            console.log('List API response for fallback:', listResponse.data);
+            
+            if (listResponse.data && listResponse.data.data && Array.isArray(listResponse.data.data)) {
+              const foundProject = listResponse.data.data.find((project: any) => project.id === Number(params.id));
+              if (foundProject) {
+                console.log('Found project in list:', foundProject);
+                setProject(foundProject);
+                return;
+              }
+            }
+          } catch (listError) {
+            console.error('List API fallback also failed:', listError);
+          }
+          
+          throw apiError; // Re-throw original error if fallback fails
+        }
+        
+        // Handle different response structures from Laravel
+        let projectData = null;
+        if (response.data) {
+          if (response.data.data) {
+            projectData = response.data.data;
+          } else {
+            projectData = response.data;
+          }
+        }
+        
+        setProject(projectData);
       } catch (error) {
         console.error('Failed to fetch project:', error);
       } finally {

@@ -15,7 +15,7 @@ import { Project } from '@/lib/store';
 import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
 
 const statusLabels = {
-  1: 'Planning',
+  1: 'To Do',
   2: 'In Progress',
   3: 'Completed',
 };
@@ -40,9 +40,25 @@ export default function ProjectsPage() {
         search: searchTerm,
         status: statusFilter 
       });
-      setProjects(response.data.data || []);
+      
+      console.log('Projects API Response:', response.data); // Debug log
+      
+      // Handle different response structures from Laravel
+      let projectsData = [];
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          projectsData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          projectsData = response.data.data;
+        } else if (response.data.projects && Array.isArray(response.data.projects)) {
+          projectsData = response.data.projects;
+        }
+      }
+      
+      setProjects(projectsData);
     } catch (error) {
       console.error('Failed to fetch projects:', error);
+      setProjects([]);
     } finally {
       setIsLoading(false);
     }
@@ -122,7 +138,7 @@ export default function ProjectsPage() {
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm"
               >
                 <option value="">All Status</option>
-                <option value="1">Planning</option>
+                      <option value="1">To Do</option>
                 <option value="2">In Progress</option>
                 <option value="3">Completed</option>
               </select>
@@ -163,7 +179,7 @@ export default function ProjectsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {project.contact?.name || 'N/A'}
+                          {project.contact?.name || project.contact_name || 'N/A'}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end space-x-2">

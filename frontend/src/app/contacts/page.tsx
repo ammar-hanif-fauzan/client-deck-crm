@@ -23,10 +23,114 @@ export default function ContactsPage() {
 
   const fetchContacts = async () => {
     try {
-      const response = await contactsAPI.getAll({ search: searchTerm });
-      setContacts(response.data.data || []);
+      console.log('Fetching contacts with search term:', searchTerm);
+      
+      // Add page parameter to get all contacts (not just first page)
+      const response = await contactsAPI.getAll({ 
+        search: searchTerm,
+        page: 1 // Explicitly set page to 1
+      });
+      
+      console.log('Contacts API Response:', response.data); // Debug log
+      console.log('API URL called:', response.config?.url);
+      console.log('Response structure:', {
+        isArray: Array.isArray(response.data),
+        hasData: !!response.data?.data,
+        hasContacts: !!response.data?.contacts,
+        keys: response.data ? Object.keys(response.data) : 'no data',
+        fullResponse: response.data
+      });
+      
+      // Handle different response structures from Laravel
+      let contactsData = [];
+      if (response.data) {
+        console.log('Processing response.data:', response.data);
+        
+        // Direct array response
+        if (Array.isArray(response.data)) {
+          console.log('Found direct array response');
+          contactsData = response.data;
+        }
+        // Laravel Resource with data wrapper (most common)
+        else if (response.data.data && Array.isArray(response.data.data)) {
+          console.log('Found data.data array');
+          contactsData = response.data.data;
+        }
+        // Custom contacts key
+        else if (response.data.contacts && Array.isArray(response.data.contacts)) {
+          console.log('Found data.contacts array');
+          contactsData = response.data.contacts;
+        }
+        // Single object (shouldn't happen for getAll, but just in case)
+        else if (response.data.id) {
+          console.log('Found single object, wrapping in array');
+          contactsData = [response.data];
+        }
+        // Check if response.data itself contains contact-like objects
+        else if (typeof response.data === 'object') {
+          console.log('Checking for array-like structures in object');
+          // Try to find array-like structure
+          const possibleArrays = Object.values(response.data).filter(Array.isArray);
+          console.log('Found possible arrays:', possibleArrays);
+          if (possibleArrays.length > 0) {
+            contactsData = possibleArrays[0];
+          }
+        }
+        
+        // Additional check: if we still have no data, try to extract from any nested structure
+        if (contactsData.length === 0) {
+          console.log('No data found, trying to extract from nested structures');
+          const extractArrays = (obj: any): any[] => {
+            const arrays: any[] = [];
+            if (Array.isArray(obj)) {
+              arrays.push(obj);
+            } else if (obj && typeof obj === 'object') {
+              Object.values(obj).forEach(value => {
+                arrays.push(...extractArrays(value));
+              });
+            }
+            return arrays;
+          };
+          
+          const allArrays = extractArrays(response.data);
+          console.log('All arrays found:', allArrays);
+          if (allArrays.length > 0) {
+            // Find the largest array (most likely to be the contacts)
+            const largestArray = allArrays.reduce((prev, current) => 
+              current.length > prev.length ? current : prev
+            );
+            contactsData = largestArray;
+            console.log('Using largest array:', largestArray);
+          }
+        }
+      }
+      
+      // Fallback: if no contacts found, try to fetch without pagination
+      if (contactsData.length === 0) {
+        console.log('No contacts found with pagination, trying without page parameter...');
+        try {
+          const fallbackResponse = await contactsAPI.getAll({ search: searchTerm });
+          console.log('Fallback response:', fallbackResponse.data);
+          
+          if (fallbackResponse.data) {
+            if (Array.isArray(fallbackResponse.data)) {
+              contactsData = fallbackResponse.data;
+            } else if (fallbackResponse.data.data && Array.isArray(fallbackResponse.data.data)) {
+              contactsData = fallbackResponse.data.data;
+            }
+          }
+        } catch (fallbackError) {
+          console.error('Fallback fetch also failed:', fallbackError);
+        }
+      }
+      
+      console.log('Processed contacts data:', contactsData);
+      console.log('Number of contacts found:', contactsData.length);
+      setContacts(contactsData);
     } catch (error) {
       console.error('Failed to fetch contacts:', error);
+      console.error('Error details:', error);
+      setContacts([]);
     } finally {
       setIsLoading(false);
     }

@@ -46,9 +46,25 @@ export function ProjectForm({ project, onSubmit, isLoading = false }: ProjectFor
     const fetchContacts = async () => {
       try {
         const response = await contactsAPI.getAll();
-        setContacts(response.data.data || []);
+        
+        console.log('Contacts API Response:', response.data); // Debug log
+        
+        // Handle different response structures from Laravel
+        let contactsData = [];
+        if (response.data) {
+          if (Array.isArray(response.data)) {
+            contactsData = response.data;
+          } else if (response.data.data && Array.isArray(response.data.data)) {
+            contactsData = response.data.data;
+          } else if (response.data.contacts && Array.isArray(response.data.contacts)) {
+            contactsData = response.data.contacts;
+          }
+        }
+        
+        setContacts(contactsData);
       } catch (error) {
         console.error('Failed to fetch contacts:', error);
+        setContacts([]);
       } finally {
         setContactsLoading(false);
       }
@@ -58,7 +74,7 @@ export function ProjectForm({ project, onSubmit, isLoading = false }: ProjectFor
   }, []);
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card className="w-full max-w-4xl">
       <CardHeader>
         <CardTitle>{project ? 'Edit Project' : 'Create New Project'}</CardTitle>
         <CardDescription>
@@ -106,7 +122,7 @@ export function ProjectForm({ project, onSubmit, isLoading = false }: ProjectFor
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Planning</SelectItem>
+                  <SelectItem value="1">To Do</SelectItem>
                   <SelectItem value="2">In Progress</SelectItem>
                   <SelectItem value="3">Completed</SelectItem>
                 </SelectContent>

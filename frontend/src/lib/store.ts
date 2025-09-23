@@ -16,6 +16,8 @@ export interface Contact {
   email: string;
   phone_number: string;
   company: string;
+  user_id?: number;
+  user?: User;
   created_at: string;
   updated_at: string;
 }
@@ -27,6 +29,7 @@ export interface Project {
   status: number;
   contact_id: number;
   contact?: Contact;
+  contact_name?: string; // For API responses that include contact name directly
   created_at: string;
   updated_at: string;
 }

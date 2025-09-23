@@ -72,12 +72,12 @@ export const usersAPI = {
 
 // Contacts API
 export const contactsAPI = {
-  getAll: (params?: { search?: string; page?: number }) =>
-    api.get('/contacts', { params }),
+  getAll: (params?: { search?: string; page?: number; per_page?: number }) =>
+    api.get('/contacts?all=true', { params }),
   getById: (id: number) => api.get(`/contacts/${id}`),
-  create: (data: { name: string; email: string; phone_number: string; company: string }) =>
+  create: (data: { name: string; email: string; phone_number: string; company: string; user_id?: number }) =>
     api.post('/contacts', data),
-  update: (id: number, data: { name?: string; email?: string; phone_number?: string; company?: string }) =>
+  update: (id: number, data: { name?: string; email?: string; phone_number?: string; company?: string; user_id?: number }) =>
     api.put(`/contacts/${id}`, data),
   delete: (id: number) => api.delete(`/contacts/${id}`),
 };
@@ -85,7 +85,13 @@ export const contactsAPI = {
 // Projects API
 export const projectsAPI = {
   getAll: (params?: { search?: string; status?: string; page?: number }) =>
-    api.get('/projects', { params }),
+    api.get('/projects', { 
+      params: {
+        search: params?.search || '',
+        status: params?.status || '',
+        page: params?.page || 1
+      }
+    }),
   getById: (id: number) => api.get(`/projects/${id}`),
   create: (data: { name: string; description: string; status: number; contact_id: number }) =>
     api.post('/projects', data),

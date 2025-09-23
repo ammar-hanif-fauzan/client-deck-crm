@@ -32,7 +32,7 @@ export function UserForm({ user, onSubmit, isLoading = false }: UserFormProps) {
   });
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card className="w-full max-w-4xl">
       <CardHeader>
         <CardTitle>{user ? 'Edit User' : 'Create New User'}</CardTitle>
         <CardDescription>

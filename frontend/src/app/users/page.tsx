@@ -24,9 +24,12 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       const response = await usersAPI.getAll({ search: searchTerm });
-      setUsers(response.data.data || []);
+      // Handle different response structures
+      const usersData = response.data.data || response.data || [];
+      setUsers(Array.isArray(usersData) ? usersData : []);
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      setUsers([]);
     } finally {
       setIsLoading(false);
     }

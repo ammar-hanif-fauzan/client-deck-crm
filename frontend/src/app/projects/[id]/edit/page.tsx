@@ -21,11 +21,53 @@ export default function EditProjectPage() {
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        const response = await projectsAPI.getById(Number(params.id));
-        setProject(response.data);
+        console.log('Fetching project for edit with ID:', params.id);
+        
+        // First try the normal API call
+        let response;
+        try {
+          response = await projectsAPI.getById(Number(params.id));
+          console.log('Project API Response:', response.data);
+        } catch (apiError) {
+          console.log('Normal API call failed, trying alternative approach...');
+          
+          // Fallback: try to get project from the list API and filter by ID
+          try {
+            const listResponse = await projectsAPI.getAll({});
+            console.log('List API response for fallback:', listResponse.data);
+            
+            if (listResponse.data && listResponse.data.data && Array.isArray(listResponse.data.data)) {
+              const foundProject = listResponse.data.data.find((project: any) => project.id === Number(params.id));
+              if (foundProject) {
+                console.log('Found project in list for edit:', foundProject);
+                setProject(foundProject);
+                return;
+              }
+            }
+          } catch (listError) {
+            console.error('List API fallback also failed:', listError);
+          }
+          
+          throw apiError; // Re-throw original error if fallback fails
+        }
+        
+        // Handle different response structures from Laravel
+        let projectData = null;
+        if (response.data) {
+          if (response.data.data) {
+            projectData = response.data.data;
+          } else {
+            projectData = response.data;
+          }
+        }
+        
+        setProject(projectData);
       } catch (error) {
         console.error('Failed to fetch project:', error);
-        toast.error('Failed to load project');
+        // Don't show error toast for 403, just log it
+        if ((error as any)?.response?.status !== 403) {
+          toast.error('Failed to load project');
+        }
       } finally {
         setIsInitialLoading(false);
       }

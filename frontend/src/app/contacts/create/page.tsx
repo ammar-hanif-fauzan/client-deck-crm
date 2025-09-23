@@ -14,10 +14,25 @@ export default function CreateContactPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (data: ContactFormData) => {
+  const handleSubmit = async (data: any) => {
     setIsLoading(true);
     try {
-      await contactsAPI.create(data);
+      // Prepare data for API - only include user_id if it's provided
+      const contactData: any = {
+        name: data.name,
+        email: data.email,
+        phone_number: data.phone_number,
+        company: data.company,
+      };
+      
+      // Only add user_id if it's provided (for existing user option)
+      if (data.user_id) {
+        contactData.user_id = data.user_id;
+      }
+      
+      console.log('Creating contact with data:', contactData); // Debug log
+      
+      await contactsAPI.create(contactData);
       toast.success('Contact created successfully!');
       router.push('/contacts');
     } catch (error: unknown) {

@@ -21,11 +21,53 @@ export default function EditContactPage() {
   useEffect(() => {
     const fetchContact = async () => {
       try {
-        const response = await contactsAPI.getById(Number(params.id));
-        setContact(response.data);
+        console.log('Fetching contact for edit with ID:', params.id);
+        
+        // First try the normal API call
+        let response;
+        try {
+          response = await contactsAPI.getById(Number(params.id));
+          console.log('Contact API Response:', response.data);
+        } catch (apiError) {
+          console.log('Normal API call failed, trying alternative approach...');
+          
+          // Fallback: try to get contact from the list API and filter by ID
+          try {
+            const listResponse = await contactsAPI.getAll({});
+            console.log('List API response for fallback:', listResponse.data);
+            
+            if (listResponse.data && listResponse.data.data && Array.isArray(listResponse.data.data)) {
+              const foundContact = listResponse.data.data.find((contact: any) => contact.id === Number(params.id));
+              if (foundContact) {
+                console.log('Found contact in list for edit:', foundContact);
+                setContact(foundContact);
+                return;
+              }
+            }
+          } catch (listError) {
+            console.error('List API fallback also failed:', listError);
+          }
+          
+          throw apiError; // Re-throw original error if fallback fails
+        }
+        
+        // Handle different response structures from Laravel
+        let contactData = null;
+        if (response.data) {
+          if (response.data.data) {
+            contactData = response.data.data;
+          } else {
+            contactData = response.data;
+          }
+        }
+        
+        setContact(contactData);
       } catch (error) {
         console.error('Failed to fetch contact:', error);
-        toast.error('Failed to load contact');
+        // Don't show error toast for 403, just log it
+        if ((error as any)?.response?.status !== 403) {
+          toast.error('Failed to load contact');
+        }
       } finally {
         setIsInitialLoading(false);
       }
@@ -36,16 +78,31 @@ export default function EditContactPage() {
     }
   }, [params.id]);
 
-  const handleSubmit = async (data: ContactFormData) => {
+  const handleSubmit = async (data: any) => {
     if (!contact) return;
     
     setIsLoading(true);
     try {
-      await contactsAPI.update(contact.id, data);
+      // Prepare data for API - only include user_id if it's provided
+      const contactData: any = {
+        name: data.name,
+        email: data.email,
+        phone_number: data.phone_number,
+        company: data.company,
+      };
+      
+      // Only add user_id if it's provided
+      if (data.user_id) {
+        contactData.user_id = data.user_id;
+      }
+      
+      console.log('Updating contact with data:', contactData); // Debug log
+      
+      await contactsAPI.update(contact.id, contactData);
       toast.success('Contact updated successfully!');
       router.push(`/contacts/${contact.id}`);
-    } catch (error: unknown) {
-      toast.error((error as any)?.response?.data?.message || 'Failed to update contact');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update contact');
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +143,7 @@ export default function EditContactPage() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Contact Not Found</h1>
               <p className="text-muted-foreground">
-                The contact you&apos;re trying to edit doesn&apos;t exist
+                The contact you're trying to edit doesn't exist
               </p>
             </div>
           </div>
