@@ -28,6 +28,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // User routes
     Route::apiResource('users', UserController::class);
     
+    // User verification routes
+    Route::post('/users/{user}/verify', [UserController::class, 'verify']);
+    Route::post('/users/{user}/verify-email', [UserController::class, 'verifyEmail']);
+    Route::post('/users/{user}/email/verify', [UserController::class, 'verifyEmail']);
+    Route::post('/users/verify/{user}', [UserController::class, 'verify']);
+    
     // Contact routes
     Route::apiResource('contacts', ContactController::class);
     

@@ -20,6 +20,7 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'email_verified_at' => $this->email_verified_at,
             'contacts_count' => $this->whenLoaded('contacts', function () {
                 return $this->contacts->count();
             }),

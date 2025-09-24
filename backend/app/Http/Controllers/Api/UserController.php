@@ -115,4 +115,40 @@ class UserController extends Controller
             'message' => 'User deleted successfully',
         ]);
     }
+
+    /**
+     * Verify user by ID
+     */
+    public function verify(User $user): JsonResponse
+    {
+        // Update user verification status
+        $user->update([
+            'email_verified_at' => now(),
+        ]);
+
+        $user->load(['contacts', 'projects']);
+
+        return response()->json([
+            'message' => 'User verified successfully',
+            'data' => new UserResource($user),
+        ]);
+    }
+
+    /**
+     * Verify user email by ID
+     */
+    public function verifyEmail(User $user): JsonResponse
+    {
+        // Update user email verification status
+        $user->update([
+            'email_verified_at' => now(),
+        ]);
+
+        $user->load(['contacts', 'projects']);
+
+        return response()->json([
+            'message' => 'User email verified successfully',
+            'data' => new UserResource($user),
+        ]);
+    }
 }
