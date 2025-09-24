@@ -65,8 +65,31 @@ export const usersAPI = {
   getById: (id: number) => api.get(`/users/${id}`),
   create: (data: { name: string; email: string; password: string; password_confirmation: string }) =>
     api.post('/users', data),
-  update: (id: number, data: { name?: string; email?: string }) =>
+  update: (id: number, data: { name?: string; email?: string; password?: string; password_confirmation?: string }) =>
     api.put(`/users/${id}`, data),
+  updatePassword: (id: number, data: { current_password: string; password: string; password_confirmation: string }) =>
+    api.put(`/users/${id}/password`, data),
+  verify: async (id: number) => {
+    // Try multiple possible endpoints
+    const endpoints = [
+      `/users/${id}/verify`,
+      `/users/${id}/verify-email`,
+      `/users/${id}/email/verify`,
+      `/users/verify/${id}`,
+    ];
+    
+    for (const endpoint of endpoints) {
+      try {
+        return await api.post(endpoint);
+      } catch (error) {
+        console.log(`Endpoint ${endpoint} failed, trying next...`);
+        continue;
+      }
+    }
+    
+    // If all endpoints fail, throw the last error
+    throw new Error('All verify endpoints failed');
+  },
   delete: (id: number) => api.delete(`/users/${id}`),
 };
 

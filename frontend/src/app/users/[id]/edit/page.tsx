@@ -9,7 +9,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { UserForm } from '@/components/users/UserForm';
 import { usersAPI } from '@/lib/api';
 import { User } from '@/lib/store';
-import { type UserUpdateFormData } from '@/lib/validations';
+import { type UserUpdateWithPasswordFormData } from '@/lib/validations';
 
 export default function EditUserPage() {
   const params = useParams();
@@ -21,11 +21,54 @@ export default function EditUserPage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await usersAPI.getById(Number(params.id));
-        setUser(response.data);
+        console.log('Fetching user for edit with ID:', params.id);
+        
+        // First try the normal API call
+        let response;
+        try {
+          response = await usersAPI.getById(Number(params.id));
+          console.log('User API Response:', response.data);
+        } catch (apiError) {
+          console.log('Normal API call failed, trying alternative approach...');
+          
+          // Fallback: try to get user from the list API and filter by ID
+          try {
+            const listResponse = await usersAPI.getAll({});
+            console.log('List API response for fallback:', listResponse.data);
+            
+            if (listResponse.data && listResponse.data.data && Array.isArray(listResponse.data.data)) {
+              const foundUser = listResponse.data.data.find((user: any) => user.id === Number(params.id));
+              if (foundUser) {
+                console.log('Found user in list for edit:', foundUser);
+                setUser(foundUser);
+                return;
+              }
+            }
+          } catch (listError) {
+            console.error('List API fallback also failed:', listError);
+          }
+          
+          throw apiError; // Re-throw original error if fallback fails
+        }
+        
+        // Handle different response structures from Laravel
+        let userData = null;
+        if (response.data) {
+          if (response.data.data) {
+            userData = response.data.data;
+          } else {
+            userData = response.data;
+          }
+        }
+        
+        console.log('Processed user data for edit:', userData);
+        setUser(userData);
       } catch (error) {
         console.error('Failed to fetch user:', error);
-        toast.error('Failed to load user');
+        // Don't show error toast for 403, just log it
+        if ((error as any)?.response?.status !== 403) {
+          toast.error('Failed to load user');
+        }
       } finally {
         setIsInitialLoading(false);
       }
@@ -36,12 +79,24 @@ export default function EditUserPage() {
     }
   }, [params.id]);
 
-  const handleSubmit = async (data: UserUpdateFormData) => {
+  const handleSubmit = async (data: UserUpdateWithPasswordFormData) => {
     if (!user) return;
     
     setIsLoading(true);
     try {
-      await usersAPI.update(user.id, data);
+      // Only include password fields if password is provided
+      const updateData: any = {
+        name: data.name,
+        email: data.email,
+      };
+      
+      if (data.password && data.password.trim() !== '') {
+        updateData.password = data.password;
+        updateData.password_confirmation = data.password_confirmation;
+      }
+      
+      console.log('Updating user with data:', updateData);
+      await usersAPI.update(user.id, updateData);
       toast.success('User updated successfully!');
       router.push(`/users/${user.id}`);
     } catch (error: unknown) {

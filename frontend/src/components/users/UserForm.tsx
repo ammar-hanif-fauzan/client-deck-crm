@@ -1,12 +1,13 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { userCreateSchema, userUpdateSchema, type UserCreateFormData, type UserUpdateFormData } from '@/lib/validations';
+import { userCreateSchema, userUpdateWithPasswordSchema, type UserCreateFormData, type UserUpdateWithPasswordFormData } from '@/lib/validations';
 import { User } from '@/lib/store';
 
 interface UserFormProps {
@@ -17,11 +18,13 @@ interface UserFormProps {
 
 export function UserForm({ user, onSubmit, isLoading = false }: UserFormProps) {
   const isEdit = !!user;
-  const schema = isEdit ? userUpdateSchema : userCreateSchema;
+  const schema = isEdit ? userUpdateWithPasswordSchema : userCreateSchema;
 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<any>({
     resolver: zodResolver(schema),
@@ -30,6 +33,16 @@ export function UserForm({ user, onSubmit, isLoading = false }: UserFormProps) {
       email: user.email,
     } : undefined,
   });
+
+  const password = watch('password');
+
+  // Set form values when user data changes
+  useEffect(() => {
+    if (user) {
+      setValue('name', user.name);
+      setValue('email', user.email);
+    }
+  }, [user, setValue]);
 
   return (
     <Card className="w-full max-w-4xl">
@@ -70,37 +83,39 @@ export function UserForm({ user, onSubmit, isLoading = false }: UserFormProps) {
             </div>
           </div>
 
-          {!isEdit && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter password"
-                  {...register('password')}
-                  disabled={isLoading}
-                />
-                {errors.password && (
-                  <p className="text-sm text-red-600">{(errors.password as any)?.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password_confirmation">Confirm Password</Label>
-                <Input
-                  id="password_confirmation"
-                  type="password"
-                  placeholder="Confirm password"
-                  {...register('password_confirmation')}
-                  disabled={isLoading}
-                />
-                {errors.password_confirmation && (
-                  <p className="text-sm text-red-600">{(errors.password_confirmation as any)?.message}</p>
-                )}
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="password">
+                {isEdit ? 'New Password (leave blank to keep current)' : 'Password'}
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder={isEdit ? "Enter new password (optional)" : "Enter password"}
+                {...register('password')}
+                disabled={isLoading}
+              />
+              {errors.password && (
+                <p className="text-sm text-red-600">{(errors.password as any)?.message}</p>
+              )}
             </div>
-          )}
+
+            <div className="space-y-2">
+              <Label htmlFor="password_confirmation">
+                {isEdit ? 'Confirm New Password' : 'Confirm Password'}
+              </Label>
+              <Input
+                id="password_confirmation"
+                type="password"
+                placeholder={isEdit ? "Confirm new password" : "Confirm password"}
+                {...register('password_confirmation')}
+                disabled={isLoading}
+              />
+              {errors.password_confirmation && (
+                <p className="text-sm text-red-600">{(errors.password_confirmation as any)?.message}</p>
+              )}
+            </div>
+          </div>
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="submit" disabled={isLoading}>

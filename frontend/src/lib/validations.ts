@@ -32,6 +32,30 @@ export const userUpdateSchema = z.object({
   email: z.string().email('Invalid email address').optional(),
 });
 
+export const userPasswordUpdateSchema = z.object({
+  current_password: z.string().min(1, 'Current password is required'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password_confirmation: z.string(),
+}).refine((data) => data.password === data.password_confirmation, {
+  message: "Passwords don't match",
+  path: ["password_confirmation"],
+});
+
+export const userUpdateWithPasswordSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+  email: z.string().email('Invalid email address').optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+  password_confirmation: z.string().optional(),
+}).refine((data) => {
+  if (data.password && data.password !== data.password_confirmation) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Passwords don't match",
+  path: ["password_confirmation"],
+});
+
 // Contact schemas
 export const contactSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -53,5 +77,7 @@ export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
 export type UserCreateFormData = z.infer<typeof userCreateSchema>;
 export type UserUpdateFormData = z.infer<typeof userUpdateSchema>;
+export type UserPasswordUpdateFormData = z.infer<typeof userPasswordUpdateSchema>;
+export type UserUpdateWithPasswordFormData = z.infer<typeof userUpdateWithPasswordSchema>;
 export type ContactFormData = z.infer<typeof contactSchema>;
 export type ProjectFormData = z.infer<typeof projectSchema>;

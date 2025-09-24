@@ -23,10 +23,28 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try {
+      console.log('Fetching users with search term:', searchTerm);
       const response = await usersAPI.getAll({ search: searchTerm });
-      // Handle different response structures
-      const usersData = response.data.data || response.data || [];
-      setUsers(Array.isArray(usersData) ? usersData : []);
+      console.log('Users API Response:', response.data);
+      
+      // Handle different response structures from Laravel
+      let usersData = [];
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          usersData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          usersData = response.data.data;
+        } else if (response.data.users && Array.isArray(response.data.users)) {
+          usersData = response.data.users;
+        }
+      }
+      
+      console.log('Processed users data:', usersData);
+      // Debug: Log email_verified_at values
+      usersData.forEach((user: any, index: number) => {
+        console.log(`User ${index + 1} (${user.name}): email_verified_at =`, user.email_verified_at, 'Type:', typeof user.email_verified_at);
+      });
+      setUsers(usersData);
     } catch (error) {
       console.error('Failed to fetch users:', error);
       setUsers([]);
@@ -38,6 +56,20 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers();
   }, [searchTerm]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for user verification events to refresh the list
+  useEffect(() => {
+    const handleUserVerified = () => {
+      console.log('User verified event received, refreshing users list...');
+      fetchUsers();
+    };
+
+    window.addEventListener('userVerified', handleUserVerified);
+    
+    return () => {
+      window.removeEventListener('userVerified', handleUserVerified);
+    };
+  }, []);
 
   const handleDeleteClick = (user: User) => {
     setUserToDelete(user);
@@ -133,8 +165,8 @@ export default function UsersPage() {
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
-                          <Badge variant={user.email_verified_at ? "default" : "secondary"}>
-                            {user.email_verified_at ? 'Verified' : 'Unverified'}
+                          <Badge variant={user.email_verified_at && user.email_verified_at !== null ? "default" : "secondary"}>
+                            {user.email_verified_at && user.email_verified_at !== null ? 'Verified' : 'Unverified'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
